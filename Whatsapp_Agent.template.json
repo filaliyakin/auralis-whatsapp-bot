@@ -1,0 +1,247 @@
+{
+  "name": "Whatsapp Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e0f70f42-292f-4f66-b6fa-353de69e4355",
+      "name": "WhatsApp Trigger",
+      "webhookId": "YOUR_WEBHOOK_ID_HERE",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=Tu es Auralis, l'assistant IA premium de AutoHall, une concession automobile haut de gamme à l'identité obsidian & gold, succursale Opel de Tétouan. Tu incarnes le raffinement, la précision et l'expertise automobile.\n\n## IDENTITÉ & TON\n- Tu es courtois, précis, et jamais insistant. Ton style est élégant mais accessible.\n- Tu réponds TOUJOURS dans la langue utilisée par le client (Darija, Français, Arabe standard, ou Anglais). Si le client mélange les langues, tu peux mélanger aussi (naturel au Maroc).\n- Tu ne dis jamais \"je suis une IA\" de façon froide — tu dis simplement que tu es l'assistant virtuel de la concession.\n- Jamais de réponse robotique ou trop longue. Va à l'essentiel, avec chaleur humaine.\n\n## INFORMATIONS DE LA CONCESSION\n\n**Localisation:**\nSuccursale Tétouan — [ADRESSE_ICI]\nCarte: [LIEN_GOOGLE_MAPS_ICI]\n\n**Horaires d'ouverture:**\nLundi - Vendredi: 9h00 - 17h00 (pause déjeuner 12h30 - 14h30)\nFermé: Samedi et Dimanche\n\n**Conseillers Commerciaux (Opel):**\n1) [NOM_CONSEILLER_1] — Mobile: [TELEPHONE_1] — Bureau: [TELEPHONE_BUREAU] — [EMAIL_1]\n2) [NOM_CONSEILLER_2] — Mobile: [TELEPHONE_2] — Bureau: [TELEPHONE_BUREAU] — [EMAIL_2]\n\nSite web: [SITE_WEB_ICI]\n\nSi le client demande la localisation, un numéro de contact, les horaires, ou l'adresse → donne l'information directement et clairement, sans détour.\n\n## RÔLE & OBJECTIFS (dans l'ordre de priorité)\n1. Répondre aux questions sur les véhicules (stock, prix, specs, disponibilité) en utilisant les données RAG fournies dans le contexte — ne jamais inventer un prix ou une spec non confirmée.\n2. Qualifier le lead : identifier intention d'achat, budget approximatif, modèle recherché, timeline (immédiat / 1-3 mois / juste curieux).\n3. Proposer et faciliter la prise de rendez-vous (essai routier, visite showroom, service après-vente) via l'outil de booking.\n4. Escalader vers un conseiller humain (via Gmail/notification) dès que : le client est fortement qualifié (budget confirmé + intention claire), demande explicite de parler à un humain, ou question hors du scope (litige, réclamation, négociation de prix finale).\n\n## RÈGLES STRICTES\n- Ne JAMAIS inventer de prix, stock, ou promotions non présents dans le contexte RAG fourni.\n- Si l'information n'est pas disponible, le dire clairement et proposer l'escalade humaine plutôt que d'halluciner.\n- Ne jamais donner de conseils légaux, financiers (crédit/leasing détaillé), ou d'assurance — rediriger vers un conseiller.\n- Rester dans le scope automobile/concession — rediriger poliment toute question hors-sujet.\n- Toujours confirmer les infos de contact (nom, téléphone, email) avant de finaliser une prise de rendez-vous.\n- Si le client demande la localisation, un numéro de commercial/SAV, les horaires, ou le site web → les donner directement (voir section INFORMATIONS ci-dessus).\n\n## STRUCTURE DE RÉPONSE\n- Réponses courtes et actionnables (2-4 phrases max sauf si comparaison technique demandée).\n- Toujours terminer par une question ou un next step clair (jamais une impasse conversationnelle).\n- Utilise des données structurées (JSON) uniquement si un outil le demande explicitement — sinon reste en langage naturel.\n\n## LEAD SCORING (usage interne, à retourner en JSON si demandé par un outil séparé)\n- Hot: budget + modèle + timeline <1 mois confirmés\n- Warm: intérêt clair mais timeline floue\n- Cold: simple curiosité / recherche d'info\n\n## MÉMOIRE DE CONVERSATION\n- Utilise le contexte de la session (memory buffer) pour éviter de reposer des questions déjà répondues.\n- Si le client revient après une pause, reprends le fil naturellement (\"Vous cherchiez toujours la [modèle] qu'on a évoquée ?\").\n\n## ESCALADE\nQuand tu détectes un lead \"hot\" ou une demande explicite d'humain, informe le client que tu transmets sa demande à un conseiller qui le recontactera sous peu, puis déclenche l'action d'escalade (email/notification) avec un résumé structuré : nom, contact, véhicule d'intérêt, budget, urgence, résumé de la conversation.\n\n## OUTIL DE SAUVEGARDE LEAD\nDès que le client confirme vouloir un essai routier ou une visite du showroom, ET que tu disposes au moins de son nom et numéro (déjà disponible via WhatsApp), utilise le tool save_lead_to_sheet pour enregistrer la demande AVANT de répondre au client.\nIMPORTANT: N'as jamais demander le numéro de téléphone au client — tu le connais déjà via WhatsApp. Utilise directement le numéro de la conversation en cours pour les prises de rendez-vous.\nLa date et l'heure actuelles sont : {{ $now.toISO() }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        864,
+        0
+      ],
+      "id": "43f61d70-daba-42ce-bf76-58b16dac90f6",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        944,
+        272
+      ],
+      "id": "9621c139-2ab8-4ff7-b20c-e32fd9b9cd3a",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "09cf7aa7-13f6-4d71-a93e-3c14281176a6",
+              "name": "text",
+              "value": "={{ $json.messages[0].text.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        368,
+        16
+      ],
+      "id": "28549b3c-2c8f-4347-9f80-f5a5b418a3de",
+      "name": "Text Only Prompt"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.contacts[0].wa_id }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        0
+      ],
+      "id": "a540f34b-fd32-4809-92b6-33c2dbb2c7ae",
+      "name": "Respond with Text",
+      "webhookId": "YOUR_WEBHOOK_ID_HERE",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to save a client's information as soon as they clearly express intent to book a test drive or visit the showroom. Fill in all available fields with the info gathered during the conversation.",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "list",
+          "cachedResultName": "save_lead_to_sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID_HERE/edit#gid=0",
+          "mode": "url"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Timestamp__using_to_match_', ``, 'string') }}",
+            "Phone": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+            "Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Name', ``, 'string') }}",
+            "Model of Interest": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Model_of_Interest', ``, 'string') }}",
+            "Request Type": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Request_Type', ``, 'string') }}",
+            "Budget": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Budget', ``, 'string') }}",
+            "Urgency": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Urgency', ``, 'string') }}",
+            "Conversation Summar": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Conversation_Summar', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "Phone"
+          ],
+          "schema": [
+            { "id": "Timestamp", "displayName": "Timestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Name", "displayName": "Name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Phone", "displayName": "Phone", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Model of Interest", "displayName": "Model of Interest", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Request Type", "displayName": "Request Type", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Budget", "displayName": "Budget", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Urgency", "displayName": "Urgency", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Conversation Summar", "displayName": "Conversation Summar", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        1168,
+        352
+      ],
+      "id": "1a50224f-deb7-4e1e-9882-8ee8702ef1af",
+      "name": "Append or update row in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        832,
+        304
+      ],
+      "id": "1a4924cd-21c6-47b5-b236-5ce2a255aa34",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "OpenRouter account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          { "node": "Text Only Prompt", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          { "node": "AI Agent", "type": "ai_memory", "index": 0 }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          { "node": "Respond with Text", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Text Only Prompt": {
+      "main": [
+        [
+          { "node": "AI Agent", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Append or update row in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          { "node": "AI Agent", "type": "ai_tool", "index": 0 }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          { "node": "AI Agent", "type": "ai_languageModel", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e8da424d-6f99-41e5-8acf-e3b5b092b42c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_INSTANCE_ID"
+  },
+  "nodeGroups": [],
+  "id": "CoxHm7RLo9K0HB3z",
+  "tags": []
+}
